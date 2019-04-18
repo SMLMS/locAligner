@@ -67,7 +67,7 @@ class SMLM_dataObject:
         print(self._dataFrame.head())
         
 def main():
-    data = SMLM_data()
+    data = SMLM_dataObject()
     data.browseFile()
     data.updateNames()
     print(data.fileName)
