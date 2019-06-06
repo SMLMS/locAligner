@@ -76,12 +76,12 @@ class SMLM_fiducials(dataObject.SMLM_dataObject):
         for  i in list(set(clDataFrame['cluster'].values))[:-1]:
             tempDataFrame = clDataFrame.loc[clDataFrame['cluster'] == i]
             clusterDataFrame.at[i, 'cl_idx'] = i
-            clusterDataFrame.at[i, 'x_mean'] = tempDataFrame["x [nm]"].mean()
-            clusterDataFrame.at[i, 'x_std'] = tempDataFrame["x [nm]"].std()
-            clusterDataFrame.at[i, 'y_mean'] = tempDataFrame["y [nm]"].mean()
-            clusterDataFrame.at[i, 'y_std'] = tempDataFrame["y [nm]"].std()
+            clusterDataFrame.at[i, 'x_mean'] = tempDataFrame[self._coordianteNames[0]].mean()
+            clusterDataFrame.at[i, 'x_std'] = tempDataFrame[self._coordianteNames[0]].std()
+            clusterDataFrame.at[i, 'y_mean'] = tempDataFrame[self._coordianteNames[1]].mean()
+            clusterDataFrame.at[i, 'y_std'] = tempDataFrame[self._coordianteNames[1]].std()
             clusterDataFrame.at[i, 'intensity'] = tempDataFrame.shape[0]
-            clusterDataFrame.at[i, 'area'] = ConvexHull(tempDataFrame[["x [nm]" , "y [nm]" ]].values).area
+            clusterDataFrame.at[i, 'area'] = ConvexHull(tempDataFrame[[self._coordianteNames[0] , self._coordianteNames[1] ]].values).area
             clusterDataFrame.at[i, 'channel'] = channel
         return clusterDataFrame
             
@@ -121,7 +121,7 @@ class SMLM_fiducials(dataObject.SMLM_dataObject):
                                                   idx9 &
                                                   idx10 &
                                                   idx11 &
-                                                  idx12] 
+                                                  idx12]
         
     def trnaslateChannel2(self):
         tempDataFrame1 = self._filteredDataFrame[self._filteredDataFrame['channel'] == 1]
@@ -140,6 +140,8 @@ class SMLM_fiducials(dataObject.SMLM_dataObject):
     def sortFiducials(self, thresholdDistance = 250):
         nbrModel = NearestNeighbors(n_neighbors=1, algorithm='auto')
         channel1 = self._translatedDataFrame[self._translatedDataFrame['channel'] == 1]
+        newIdx1 = np.arange(0,channel1.shape[0])
+        channel1 = channel1.set_index(newIdx1)
         channel2 = self._translatedDataFrame[self._translatedDataFrame['channel'] == 2]
         nbrs= nbrModel.fit(channel2[['x_mean', 'y_mean']].values)
         distances, indices = nbrs.kneighbors(channel1[['x_mean', 'y_mean']].values)
@@ -149,8 +151,14 @@ class SMLM_fiducials(dataObject.SMLM_dataObject):
         channel1.plot(y='nn_dist', use_index=False)
         channel1 = channel1[channel1['nn_dist'] <= thresholdDistance]
         channel2 = self._filteredDataFrame[self._filteredDataFrame['channel'] == 2]
-        channel2 = channel2.reindex(channel1['nn_idx'].values)
+        newIdx2 = np.arange(0,channel2.shape[0])
+        channel2 = channel2.set_index(newIdx2)
+        channel2 = channel2.reindex(channel1['nn_idx'].values, axis='index')
+        print(channel1['x_mean'].values)
+        print(channel2['x_mean'].values)
         self._fiducialDataFrame = pd.concat([channel1.loc[:,:'channel'], channel2])
+        newIdx3 = np.arange(0,self._fiducialDataFrame.shape[0])
+        self._fiducialDataFrame.set_index(newIdx3)
         
     def createAffineMatrix(self):
         '''

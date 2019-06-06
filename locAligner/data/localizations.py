@@ -40,20 +40,23 @@ class SMLM_localizations(dataObject.SMLM_dataObject):
                         metric_params=None,
                         min_samples=min_samples,
                         n_jobs=-1,
-                        p=None).fit(self._dataFrame[['x [nm]','y [nm]']].values)
+                        p=None).fit(self._dataFrame[[self._coordianteNames[0],self._coordianteNames[1]]].values)
         self._dataFrame = self._dataFrame.assign(cluster = cluster.labels_)
         
     def clusterArray(self):
         return set(self._dataFrame['cluster'].values)
         
     def plotLocalizations(self):
-        ax2 = self._dataFrame.plot.scatter(x='x [nm]',
-                                          y = 'y [nm]',
-                                          c = 'cluster',
-                                          colormap='viridis')
+        ax2 = self._dataFrame.plot.scatter(x = self._coordianteNames[0],
+                                           y = self._coordianteNames[1],
+                                           c = 'cluster',
+                                           colormap='viridis')
     
     def plotCluster(self, cNum = 0):
-        self._dataFrame[self._dataFrame['cluster'] == cNum].plot.scatter(x='x [nm]', y='y [nm]')
+        self._dataFrame[self._dataFrame['cluster'] == cNum].plot.scatter(x = self._coordianteNames[0],
+                       y = self._coordianteNames[1],
+                       c = 'frame',
+                       colormap='rainbow')
     
 def main():
     dataSet = SMLM_localizations()

@@ -9,6 +9,9 @@ import numpy as np
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 import csv
+import os
+from shutil import copyfile
+import h5py
 from ..data import localizations
 
 class SMLM_regLocs(localizations.SMLM_localizations):
@@ -29,7 +32,7 @@ class SMLM_regLocs(localizations.SMLM_localizations):
         print("Matrix loaded from: %s" % (fileName))
         
     def affineTransformation(self):
-        locs = self._dataFrame[['x [nm]', 'y [nm]']].values
+        locs = self._dataFrame[[self._coordianteNames[0], self._coordianteNames[1]]].values
         p=np.zeros([3,1])
         p[2]=1
         for i in range (0,self._dataFrame.shape[0]):
@@ -38,10 +41,33 @@ class SMLM_regLocs(localizations.SMLM_localizations):
             o=np.dot(self._affineMatrix,p)
             locs[i,0]=o[0]
             locs[i,1]=o[1]
-        self._dataFrame = self._dataFrame.assign(**{'x [nm]': locs[:,0]}).round(1)
-        self._dataFrame = self._dataFrame.assign(**{'y [nm]': locs[:,1]}).round(1)
+        self._dataFrame = self._dataFrame.assign(**{self._coordianteNames[0]: locs[:,0]}).round(1)
+        self._dataFrame = self._dataFrame.assign(**{self._coordianteNames[1]: locs[:,1]}).round(1)
         
     def saveDataFrame(self, prefix='registered'):
-        outName = str('%s\%s_%s%s' %(self._folderName, self._baseName, prefix, '.txt'))
+        if (self._fileName):
+            filename, file_extension = os.path.splitext(self._fileName)
+            if(file_extension == ".csv"):
+                self.saveDataFrameCsv()
+            elif((file_extension == ".hdf5") or (file_extension == ".h5")):
+                self.saveDataFrameHdf5()
+            else:
+                print("file of type "+file_extension+" is not understood")
+        else:
+            print('No file name selected!')
+    
+    def saveDataFrameCsv(self, prefix='registered'):
+        outName = str('%s\%s_%s%s' %(self._folderName, self._baseName, prefix, '.csv'))
         self._dataFrame.to_csv(path_or_buf = outName, index=False, quoting=csv.QUOTE_NONNUMERIC)
         print("Registered dataset written to: %s" % (outName))
+        
+    def saveDataFrameHdf5(self,prefix='registered', pxlSize=160.0):
+        outName = str('%s\%s_%s%s' %(self._folderName, self._baseName[:-1], prefix, '.hdf5'))
+        copyfile(self._fileName, outName)
+        f = h5py.File(outName, 'r+')     # open the file
+        data = f['locs']       # load the data
+        data['x'] = self._dataFrame[self._coordianteNames[0]].values/pxlSize
+        data['y'] = self._dataFrame[self._coordianteNames[1]].values/pxlSize
+        f.close()
+
+        
